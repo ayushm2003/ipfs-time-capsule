@@ -18,10 +18,8 @@
   },
   "homepage": "https://github.com/ayushm2003/eth-time-capsule#readme",
   "dependencies": {
-    "ejs": "^3.1.6",
     "express": "^4.17.1",
     "ipfs-http-client": "^49.0.4",
-    "moment": "^2.29.1",
     "proposal-temporal": "^0.7.0"
   }
 }

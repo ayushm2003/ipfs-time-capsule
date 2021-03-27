@@ -6,6 +6,16 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
 
+		<style>
+			body {
+    			text-align: center;
+			}
+			form {
+    			display: inline-block;
+			}
+
+		</style>
+
         <script>
 			function checkInputs() {
   				var isValid = true;
@@ -20,27 +30,41 @@
 			$('#submit').click(function() {
   				alert(checkInputs());
 			});
+			};
 
-		checkInputs()
+			checkInputs();
 		</script>
     </head>
     <body>
+		<br>
+		<h1>IPFS Time Capsules</h1>
+		<br>
+		<h3></h3>
+
         <form id="details" method="post" action="/">
             <div class="mb-3">
               <label class="form-label">Message</label>
               <input required type="text" name="message" class="form-control" id="message" aria-describedby="emailHelp">
             </div>
             <div class="mb-3">
-              <label class="form-label">Date, time after which the message is public (UTC)</label>
+              <label class="form-label">Date, time after which the message is made public (<a href="https://www.worldtimebuddy.com/">UTC</a>)</label>
               <input required type="datetime-local" class="form-control" id="date" name="dateTime">
             </div>
-            <button type="submit" class="btn btn-primary action" id="submit" onclick="validateForm()">Submit</button>
+            <button type="submit" class="btn btn-primary action" id="submit">Capsulize</button>
         </form>
         <br>
         <br>
         <div id="output"></div>
 		<br>
 		View the Messages <a href = "/view">here</a>
+		<br>
+		<br>
+		Built by <a href="https://www.twitter.com/ayush_modi_">Ayush</a>
+		<br>
+		<a href="https://github.com/ayushm2003/ipfs-time-capsule">Code</a>
+		<br>
+		Donate ETH at 0x5B172915fbf880dB099b9E14635630E29d134eCB <br>
+		<br>
         <script>
           const $form = $('#details')
           $("#details").submit(function(e) {

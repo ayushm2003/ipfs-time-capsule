@@ -6,6 +6,16 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script> 
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
 
+		<style>
+			body {
+    			text-align: center;
+			}
+			form {
+    			display: inline-block;
+			}
+
+		</style>
+
 		<script>
 			function checkInputs() {
   				var isValid = true;
@@ -25,12 +35,14 @@
 		</script>
     </head>
     <body>
+		<br>
+		<br>
         <form id="output" action="/view" method="post">
             <div class="mb-3">
               <label class="form-label">Message index</label>
               <input required type="number" class="form-control" id="period" name="index">
             </div>
-            <button type="submit" class="btn btn-primary" id="submit">See</button>
+            <button type="submit" class="btn btn-primary" id="submit">View</button>
         </form>
         <br>
         <br>

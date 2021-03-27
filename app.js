@@ -79,6 +79,10 @@ app.get('/view', async (req, res) => {
 app.post('/view', async (req, res) => {
     
     let index = req.body.index;
+
+	if (index >= counter) {
+		res.send("Sorry, no message is stored at this index")
+	}
    
    var now = new Date;
    var currentTimestamp = Date.UTC(now.getUTCFullYear(),now.getUTCMonth(), now.getUTCDate() , 

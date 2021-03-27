@@ -7,6 +7,7 @@ const csvWriter = require('csv-write-stream');
 const csv = require('csvtojson');
 const mongo = require('mongodb');
 
+
 const app = express();
 
 app.use('/public', express.static(path.join(__dirname, 'static')));
@@ -17,11 +18,12 @@ app.listen(process.env.PORT || 3000);
 console.log('Node server running on port 3000');
 
 var MongoClient = mongo.MongoClient;
-var url = "mongodb://localhost:27017/mydb";
-
+//var url = "mongodb://localhost:27017/mydb";
+var url = process.env.MONGODB_URI;
+/*
 MongoClient.connect(url, function(err, db) {
     if (err) throw err;
-    var dbo = db.db("mydb");
+    var dbo = db.db("cluster");
     dbo.collection("details").drop(function(err, delOK) {
       if (err) throw err;
       if (delOK) console.log("Collection deleted");
@@ -33,13 +35,14 @@ MongoClient.connect(url, function(err, db) {
 MongoClient.connect(url, function(err, db) {
   if (err) throw err;
   console.log("Database created!");
-  var dbo = db.db("mydb");
+  var dbo = db.db("cluster");
   dbo.createCollection("details", function(err, res) {
     if (err) throw err;
     console.log("Collection created!");
     db.close();
   });
 });
+*/
 
 
 const ipfs = new ipfsClient("https://ipfs.infura.io:5001");
@@ -72,7 +75,7 @@ app.post('/', async (req, res) => {
  
     MongoClient.connect(url, async function(err, db) {
         if (err) throw err;
-        var dbo = db.db("mydb");
+        var dbo = db.db("cluster");
         var entries = dbo.collection('details');
         var counter = await entries.countDocuments();
         count = counter;
@@ -105,7 +108,7 @@ app.post('/view', async (req, res) => {
    //var count;
    MongoClient.connect(url, async function(err, db) {
     if (err) throw err;
-    var dbo = db.db("mydb");
+    var dbo = db.db("cluster");
     var entries = dbo.collection('details');
     var counter = await entries.countDocuments();
     //count = counter;
@@ -126,7 +129,7 @@ app.post('/view', async (req, res) => {
 
     //MongoClient.connect(url, function(err, db) {
         //if (err) throw err;
-        //var dbo = db.db("mydb");
+        //var dbo = db.db("cluster");
         console.log("index - ", index);
         
         //console.log("typr_of_index", typeof(index));

@@ -116,7 +116,7 @@ app.post('/view', async (req, res) => {
             res.send(message);
         }
         else {
-            res.send("Can view the message only after " + jsonArrayObj[index].release_time + " 24-hour UTC");
+            res.send("Can view the message only after " + jsonArrayObj[index].release_time + " (24-hour UTC)");
         }
     })
 

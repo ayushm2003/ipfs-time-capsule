@@ -2,6 +2,9 @@ const express = require('express');
 const path = require('path');
 const ipfsClient = require('ipfs-http-client');
 const crypto = require('crypto');
+const fs = require('fs');
+const csvWriter = require('csv-write-stream');
+const csv = require('csvtojson');
 
 const app = express();
 
@@ -13,8 +16,6 @@ app.listen(process.env.PORT || 3000);
 console.log('Node server running on port 3000');
 
 const ipfs = new ipfsClient("https://ipfs.infura.io:5001");
-let counter = 0;
-let data = {};
 
 app.get('/', async (req, res) => {
     res.sendFile(path.join(__dirname, 'static', 'index.html'));    
@@ -26,9 +27,9 @@ app.post('/', async (req, res) => {
     console.log(req.body);
 
     key = crypto.randomBytes(24);
-    console.log(Buffer.from(key))
     var iv = crypto.randomBytes(16);
-    var cipher = encryptMessage(req.body.message, Buffer.from(key), iv);
+
+    var cipher = encryptMessage(req.body.message, key, iv);
     console.log("ciphertext-", cipher)
 
     const { path } = await ipfs.add(cipher);
@@ -43,19 +44,35 @@ app.post('/', async (req, res) => {
 
     const timestamp = Date.UTC(parseInt(dateDue[0]), parseInt(dateDue[1]) - 1, parseInt(dateDue[2]), parseInt(timeDue[0]), parseInt(timeDue[1]), 0, 0);
     
+    if (!fs.existsSync('./data.csv'))
+    	writer = csvWriter({ headers: ["ipfsPath", "key", "iv", "timestamp", "release_time"]});
+  	else
+    	writer = csvWriter({sendHeaders: false});
+    
 
-    let details = {
-        "ipfsPath": path,
-        "key": key,
-        "iv": iv,
-        "timestamp": timestamp,
-		"release_time": req.body.dateTime
-    };
-    data[counter] = details;
-    counter += 1;
-    console.log(data);
+    writer.pipe(fs.createWriteStream('./data.csv', {flags: 'a'}));
+    writer.write({
+        ipfsPath:path,
+        key:key.toString('hex'),
+        iv:iv.toString('hex'),
+        timestamp:timestamp,
+        release_time:req.body.dateTime
+    });
+    writer.end();
 
-    res.send("An encrypted version of the message was successfully logged at index  " + (counter-1) + " <br> (remember this, to access the message in future)" + "<br/>" + "IPFS hash - " + "https://cloudflare-ipfs.com/ipfs/" + data[counter-1].ipfsPath);
+
+    var i;
+	var count = 0;
+	fs.createReadStream('data.csv')
+  	.on('data', function(chunk) {
+    	for (i=0; i < chunk.length; ++i)
+      		if (chunk[i] == 10) count += 1;
+  		})
+  	.on('end', function() {
+    	console.log("no. of line = ", count);
+		res.send("An encrypted version of the message was successfully logged at index  " + (count-2) + " <br> (remember this, to access the message in future)" + "<br/>" + "IPFS hash - " + "https://cloudflare-ipfs.com/ipfs/" + path);
+
+    });
 
 });
 
@@ -67,7 +84,17 @@ app.post('/view', async (req, res) => {
     
     let index = req.body.index;
 
-	if (index >= counter) {
+    var i;
+	var count = 0;
+	fs.createReadStream('data.csv')
+  	.on('data', function(chunk) {
+    	for (i=0; i < chunk.length; ++i)
+      		if (chunk[i] == 10) count++;
+  		})
+  	.on('end', function() {
+    	console.log("no. of line_view = ", count);
+
+	if (index >= (count-2)) {
 		res.send("Sorry, no message is stored at this index")
 	}
    else {
@@ -75,21 +102,28 @@ app.post('/view', async (req, res) => {
    var currentTimestamp = Date.UTC(now.getUTCFullYear(),now.getUTCMonth(), now.getUTCDate() , 
                     now.getUTCHours(), now.getUTCMinutes(), 0, 0);
 
-    if (currentTimestamp > data[index].timestamp) {
-        let cipher = "";
-        let message = "";
-        for await (const chunk of ipfs.cat(data[index].ipfsPath)) {
-            cipher = chunk.toString();
+    csv()
+    .fromFile('data.csv')
+    .then(async function(jsonArrayObj){ //when parse finished, result will be emitted here.
+        console.log(jsonArrayObj[index]); 
+                    
+        if (currentTimestamp > jsonArrayObj[index].timestamp) {
+            let cipher = "";
+            let message = "";
+            for await (const chunk of ipfs.cat(jsonArrayObj[index].ipfsPath)) {
+                cipher = chunk.toString();
+            }
+                
+            message = decryptMessage(cipher, Buffer.from(jsonArrayObj[index].key, 'hex'), Buffer.from(jsonArrayObj[index].iv, 'hex'));
+            res.send(message);
         }
+        else {
+            res.send("Can view the message only after " + jsonArrayObj[index].release_time + " 24-hour UTC");
+        }
+    })
 
-        message = decryptMessage(cipher, Buffer.from(data[index].key), data[index].iv);
-        res.send(message);
-    }
-    else{
-        res.send("Can view the message only after " + data[index].release_time + " UTC");
-    }
-	
    }
+   });
 });
 
 
@@ -102,7 +136,6 @@ function encryptMessage(message, key, iv) {
 
 function decryptMessage(cipher, key, iv) {
     var algorithm = 'aes-192-cbc';
-    let iv1 = Buffer.from(iv, 'hex');
     var decipher = crypto.createDecipheriv(algorithm, key, iv);
     var decrypted = decipher.update(cipher, 'hex', 'utf8') + decipher.final('utf8'); //deciphered text
     return decrypted;

@@ -2,7 +2,7 @@
 
 Takes up a message and immortalises its encrypted version on IPFS. The message is visible only after the specified time.
 
-Try it out [here](https://ipfs-time-capsule.ayushm2003.repl.co/)
+Try it out [here](https://ipfs-time-capsule.herokuapp.com/)
 
 ## Local Build
 `git clone`

@@ -4,6 +4,8 @@ Takes up a message and immortalises its encrypted version on IPFS. The message i
 
 Try it out [here](https://ipfs-time-capsule.herokuapp.com/)
 
+The state is stored in a `csv` file
+
 ## Local Build
 `git clone`
 

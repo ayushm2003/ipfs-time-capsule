@@ -9,7 +9,7 @@ app.use('/public', express.static(path.join(__dirname, 'static')));
 app.use(express.urlencoded({extended: false}));
 app.use(express.json());
 
-app.listen(3000);
+app.listen(process.env.PORT || 3000);
 console.log('Node server running on port 3000');
 
 const ipfs = new ipfsClient("https://ipfs.infura.io:5001");

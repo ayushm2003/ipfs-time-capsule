@@ -24,8 +24,6 @@ app.get('/', async (req, res) => {
 
 app.post('/', async (req, res) => {
     
-    console.log(req.body);
-
     key = crypto.randomBytes(24);
     var iv = crypto.randomBytes(16);
 
@@ -94,7 +92,7 @@ app.post('/view', async (req, res) => {
   	.on('end', function() {
     	console.log("no. of line_view = ", count);
 
-	if (index >= (count-2)) {
+	if (index > (count-2)) {
 		res.send("Sorry, no message is stored at this index")
 	}
    else {

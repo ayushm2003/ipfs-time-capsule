@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const csvWriter = require('csv-write-stream');
 const csv = require('csvtojson');
+const mongo = require('mongodb');
 
 const app = express();
 
@@ -14,6 +15,32 @@ app.use(express.json());
 
 app.listen(process.env.PORT || 3000);
 console.log('Node server running on port 3000');
+
+var MongoClient = mongo.MongoClient;
+var url = "mongodb://localhost:27017/mydb";
+
+MongoClient.connect(url, function(err, db) {
+    if (err) throw err;
+    var dbo = db.db("mydb");
+    dbo.collection("details").drop(function(err, delOK) {
+      if (err) throw err;
+      if (delOK) console.log("Collection deleted");
+      db.close();
+    });
+  });
+
+
+MongoClient.connect(url, function(err, db) {
+  if (err) throw err;
+  console.log("Database created!");
+  var dbo = db.db("mydb");
+  dbo.createCollection("details", function(err, res) {
+    if (err) throw err;
+    console.log("Collection created!");
+    db.close();
+  });
+});
+
 
 const ipfs = new ipfsClient("https://ipfs.infura.io:5001");
 
@@ -57,6 +84,25 @@ app.post('/', async (req, res) => {
         release_time:req.body.dateTime
     });
     writer.end();
+    
+    MongoClient.connect(url, async function(err, db) {
+        if (err) throw err;
+        var dbo = db.db("mydb");
+        var entries = dbo.collection('details');
+        var counter = await entries.countDocuments();
+        console.log("counter_mongo", counter);
+
+
+        var myobj = { sequence: counter, ipfsPath: path, key: key.toString('hex'), iv: iv.toString('hex'),
+                    timestamp: timestamp, release_time: req.body.dateTime};
+        dbo.collection("details").insertOne(myobj, function(err, res) {
+          if (err) throw err;
+          console.log("1 document inserted");
+          console.log(res);
+          db.close();
+        });
+    });
+
 
 
     var i;
@@ -103,7 +149,7 @@ app.post('/view', async (req, res) => {
     csv()
     .fromFile('data.csv')
     .then(async function(jsonArrayObj){ //when parse finished, result will be emitted here.
-        console.log(jsonArrayObj[index]); 
+        //console.log(jsonArrayObj[index]); 
                     
         if (currentTimestamp > jsonArrayObj[index].timestamp) {
             let cipher = "";
@@ -122,6 +168,22 @@ app.post('/view', async (req, res) => {
 
    }
    });
+
+   MongoClient.connect(url, function(err, db) {
+    if (err) throw err;
+    var dbo = db.db("mydb");
+    console.log("index - ", index);
+    
+    console.log("typr_of_index", typeof(index));
+    index = parseInt(index, 10);
+    dbo.collection("details").find({"sequence": index}).toArray(function(err, result) {
+      if (err) throw err;
+      console.log("result_mongodb", result);
+      db.close();
+    });
+
+  });
+  
 });
 
 

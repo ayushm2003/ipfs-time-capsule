@@ -69,53 +69,25 @@ app.post('/', async (req, res) => {
 
     const timestamp = Date.UTC(parseInt(dateDue[0]), parseInt(dateDue[1]) - 1, parseInt(dateDue[2]), parseInt(timeDue[0]), parseInt(timeDue[1]), 0, 0);
     
-    if (!fs.existsSync('./data.csv'))
-    	writer = csvWriter({ headers: ["ipfsPath", "key", "iv", "timestamp", "release_time"]});
-  	else
-    	writer = csvWriter({sendHeaders: false});
-    
-
-    writer.pipe(fs.createWriteStream('./data.csv', {flags: 'a'}));
-    writer.write({
-        ipfsPath:path,
-        key:key.toString('hex'),
-        iv:iv.toString('hex'),
-        timestamp:timestamp,
-        release_time:req.body.dateTime
-    });
-    writer.end();
-    
+ 
     MongoClient.connect(url, async function(err, db) {
         if (err) throw err;
         var dbo = db.db("mydb");
         var entries = dbo.collection('details');
         var counter = await entries.countDocuments();
+        count = counter;
         console.log("counter_mongo", counter);
 
 
         var myobj = { sequence: counter, ipfsPath: path, key: key.toString('hex'), iv: iv.toString('hex'),
                     timestamp: timestamp, release_time: req.body.dateTime};
-        dbo.collection("details").insertOne(myobj, function(err, res) {
+        dbo.collection("details").insertOne(myobj, function(err, result) {
           if (err) throw err;
           console.log("1 document inserted");
-          console.log(res);
+          res.send("An encrypted version of the message was successfully logged at index  " + counter + " <br> (remember this, to access the message in future)" + "<br/>" + "IPFS hash - " + "https://cloudflare-ipfs.com/ipfs/" + path);
+          //console.log(res);
           db.close();
         });
-    });
-
-
-
-    var i;
-	var count = 0;
-	fs.createReadStream('data.csv')
-  	.on('data', function(chunk) {
-    	for (i=0; i < chunk.length; ++i)
-      		if (chunk[i] == 10) count += 1;
-  		})
-  	.on('end', function() {
-    	console.log("no. of line = ", count);
-		res.send("An encrypted version of the message was successfully logged at index  " + (count-2) + " <br> (remember this, to access the message in future)" + "<br/>" + "IPFS hash - " + "https://cloudflare-ipfs.com/ipfs/" + path);
-
     });
 
 });
@@ -127,63 +99,62 @@ app.get('/view', async (req, res) => {
 app.post('/view', async (req, res) => {
     
     let index = req.body.index;
+    index = parseInt(index, 10);
+    
 
-    var i;
-	var count = 0;
-	fs.createReadStream('data.csv')
-  	.on('data', function(chunk) {
-    	for (i=0; i < chunk.length; ++i)
-      		if (chunk[i] == 10) count++;
-  		})
-  	.on('end', function() {
-    	console.log("no. of line_view = ", count);
-
-	if (index > (count-2)) {
-		res.send("Sorry, no message is stored at this index")
-	}
-   else {
-   var now = new Date;
-   var currentTimestamp = Date.UTC(now.getUTCFullYear(),now.getUTCMonth(), now.getUTCDate() , 
-                    now.getUTCHours(), now.getUTCMinutes(), 0, 0);
-
-    csv()
-    .fromFile('data.csv')
-    .then(async function(jsonArrayObj){ //when parse finished, result will be emitted here.
-        //console.log(jsonArrayObj[index]); 
-                    
-        if (currentTimestamp > jsonArrayObj[index].timestamp) {
-            let cipher = "";
-            let message = "";
-            for await (const chunk of ipfs.cat(jsonArrayObj[index].ipfsPath)) {
-                cipher = chunk.toString();
-            }
-                
-            message = decryptMessage(cipher, Buffer.from(jsonArrayObj[index].key, 'hex'), Buffer.from(jsonArrayObj[index].iv, 'hex'));
-            res.send(message);
-        }
-        else {
-            res.send("Can view the message only after " + jsonArrayObj[index].release_time + " (24-hour UTC)");
-        }
-    })
-
-   }
-   });
-
-   MongoClient.connect(url, function(err, db) {
+   //var count;
+   MongoClient.connect(url, async function(err, db) {
     if (err) throw err;
     var dbo = db.db("mydb");
-    console.log("index - ", index);
-    
-    console.log("typr_of_index", typeof(index));
-    index = parseInt(index, 10);
-    dbo.collection("details").find({"sequence": index}).toArray(function(err, result) {
-      if (err) throw err;
-      console.log("result_mongodb", result);
-      db.close();
-    });
+    var entries = dbo.collection('details');
+    var counter = await entries.countDocuments();
+    //count = counter;
+    console.log("counter_mongo", counter);
+    //db.close();
+   //});
 
-  });
-  
+   //console.log("count - ", count)
+   if (index >= counter) {
+    res.send("Sorry, no message is stored at this index")
+   }
+   else {
+
+    var now = new Date;
+    var currentTimestamp = Date.UTC(now.getUTCFullYear(),now.getUTCMonth(), now.getUTCDate() , 
+                    now.getUTCHours(), now.getUTCMinutes(), 0, 0);
+
+
+    //MongoClient.connect(url, function(err, db) {
+        //if (err) throw err;
+        //var dbo = db.db("mydb");
+        console.log("index - ", index);
+        
+        //console.log("typr_of_index", typeof(index));
+       
+        dbo.collection("details").find({"sequence": index}).toArray(async function(err, result) {
+        if (err) throw err;
+        console.log("result_mongodb", result[0]);
+
+        //console.log("result timestamp", result[0].timestamp);
+        if (currentTimestamp > result[0].timestamp) {
+            let cipher = "";
+            let message = "";
+            for await (const chunk of ipfs.cat(result[0].ipfsPath)) {
+                cipher = chunk.toString();
+            }
+    
+            message = decryptMessage(cipher, Buffer.from(result[0].key, 'hex'), Buffer.from(result[0].iv, 'hex'));
+                res.send(message);
+        }
+        else {
+            res.send("Can view the message only after " + result[0].release_time + " (24-hour UTC)");
+        }
+        });
+        db.close();
+    }
+      });
+
+ 
 });
 
 
